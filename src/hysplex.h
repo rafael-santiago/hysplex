@@ -23,7 +23,7 @@ struct hysplex_stat {
     int score;
 };
 
-typedef void (*hysplex_any_func)();
+typedef void (*hysplex_meta_func)();
 
 struct hysplex_eval_group {
     char *name;
@@ -32,7 +32,7 @@ struct hysplex_eval_group {
 
 #define HYSPLEX_FUNCTION_GROUP_BEGIN(name) struct hysplex_eval_group name[] = {
 
-#define HYSPLEX_REGISTER_FUNCTION(func) { #func, (hysplex_any_func)func }
+#define HYSPLEX_REGISTER_FUNCTION(func) { #func, (hysplex_meta_func)func }
 
 #define HYSPLEX_FUNCTION_GROUP_END }
 
