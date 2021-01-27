@@ -23,10 +23,20 @@ struct hysplex_stat {
     int score;
 };
 
+typedef void (*hysplex_any_func)();
+
 struct hysplex_eval_group {
     char *name;
-    void (*func)();
+    hysplex_any_func func;
 };
+
+#define HYSPLEX_FUNCTION_GROUP_BEGIN(name) struct hysplex_eval_group name[] = {
+
+#define HYSPLEX_REGISTER_FUNCTION(func) { #func, (hysplex_any_func)func }
+
+#define HYSPLEX_FUNCTION_GROUP_END }
+
+#define HYSPLEX_FUNCTION_GROUP_SIZE(name) sizeof(name) / sizeof(name[0])
 
 FILE *hysplex_stdout = NULL;
 
@@ -175,9 +185,10 @@ FILE *hysplex_stdout = NULL;
         HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, pre_run_stmt, post_run_stmt, func0, func1, func_args...)\
 HYSPLEX_MAIN_END
 
-#define HYSPLEX_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, group_nr, func_args...)\
+#define HYSPLEX_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, func_args...)\
     HYSPLEX_MAIN_BEGIN\
-        HYSPLEX_DO_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, group_nr, func_args...)\
+        HYSPLEX_DO_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, HYSPLEX_FUNCTION_GROUP_SIZE(group),\
+                              func_args...)\
 HYSPLEX_MAIN_END
 
 ssize_t hysplex_get_winner_function(struct hysplex_stat *hs, const size_t hs_nr, const size_t iter_nr, const int is_final);
