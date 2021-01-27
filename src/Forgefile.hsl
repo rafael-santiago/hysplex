@@ -1,0 +1,34 @@
+include Toolsets.hsl
+
+local var src type list;
+local var includes type list;
+local var cflags type list;
+local var libraries type list;
+local var ldflags type list;
+local var libname type string;
+
+local var toolset_name type string;
+local var depchain_str type string;
+
+project hysplex-lib : toolset $toolset_name :
+                            dependencies $depchain_str : $src, $includes, $cflags, $libraries, $ldflags, $libname;
+
+hysplex-lib.preloading() {
+    $toolset_name = get_lib_toolset();
+}
+
+hysplex-lib.prologue() {
+    $includes = hefesto.sys.get_option("includes");
+    $cflags = hefesto.sys.get_option("cflags");
+    $libraries = hefesto.sys.get_option("libraries");
+    $ldflags = hefesto.sys.get_option("ldflags");
+    $libname = "libhysplex.a";
+    $src.ls(".*\\.c$");
+    $depchain_str = get_c_cpp_deps();
+}
+
+hysplex-lib.epilogue() {
+    if (hefesto.sys.last_forge_result() == 0) {
+        hefesto.sys.echo("BUILD INFO: done.\n");
+    }
+}

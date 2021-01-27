@@ -1,0 +1,46 @@
+include ~/toolsets/gcc/gcc-app.hsl
+include ~/toolsets/gcc/gcc-lib.hsl
+include ~/toolsets/clang/clang-app.hsl
+include ~/toolsets/clang/clang-lib.hsl
+include ~/toolsets/common/utils/lang/c/dependency_scanner.hsl
+
+local function runbk(cmdline type string) : result type int {
+    var hiding_postfix type string;
+    if (hefesto.sys.os_name() != "windows") {
+        $hiding_postfix = " > /dev/null 2>&1";
+    } else {
+        $hiding_postfix = "> nul 2>&1";
+    }
+    result hefesto.sys.run($cmdline + $hiding_postfix);
+}
+
+local function has_gcc() : result type int {
+    result (runbk("gcc --version") == 0);
+}
+
+local function has_clang() : result type int {
+    result (runbk("clang --version") == 0);
+}
+
+local function get_toolset() : result type string {
+    var option type list;
+    $option = hefesto.sys.get_option("toolset");
+    if ($option.count() > 0) {
+        result $option.item(0);
+    }
+    if (has_gcc()) {
+        result "gcc";
+    }
+    if (has_clang()) {
+        result "clang";
+    }
+    result "";
+}
+
+function get_lib_toolset() : result type string {
+    result get_toolset() + "-c-lib";
+}
+
+function get_app_toolset() : result type string {
+    result get_toolset() + "-c-app";
+}
