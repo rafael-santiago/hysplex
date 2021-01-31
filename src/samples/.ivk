@@ -1,0 +1,1 @@
+--forgefiles=Samples.hsl --Samples-projects=eval-pair --includes=.. --cflags=-std=gnu99 --libraries=../../lib --ldflags=-lhysplex --obj-output-dir=o --bin-output-dir=../../samples
