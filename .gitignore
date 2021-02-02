@@ -2,3 +2,5 @@ lib/*
 src/o/*
 *.*-chsum-base
 samples/*
+src/samples/*
+samples/o/*

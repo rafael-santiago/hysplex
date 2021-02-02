@@ -39,12 +39,20 @@ struct hysplex_eval_group {
 
 #define HYSPLEX_FUNCTION_GROUP_SIZE(name) sizeof(name) / sizeof(name[0])
 
+#define HYSPLEX_SNPRINTF(buf, buf_size, ...) {\
+    if (buf != NULL) {\
+        snprintf(buf, buf_size, __VA_ARGS__);\
+        buf += strlen(buf);\
+        buf_size -= strlen(buf);\
+    }\
+}
+
 static FILE *hysplex_stdout = NULL;
 
 #define HYSPLEX_BANNER {\
-    fprintf(hysplex_stdout, " _     _ __   __ _______  _____         _______ _     _\n"\
-                            " |_____|   \\_/   |______ |_____] |      |______  \\___/ \n"\
-                            " |     |    |    ______| |       |_____ |______ _/   \\_\n\n");\
+    fprintf(hysplex_stdout, " _     _ __   __  _____   _____          ______ _     _\n"\
+                            " |_____|   \\_/   |_____  |_____] |      |______  \\___/ \n"\
+                            " |     |    |     _____| |       |_____ |______ _/   \\_\n\n");\
 }
 
 #define HYSPLEX_ERROR(err) {\
@@ -66,7 +74,7 @@ static FILE *hysplex_stdout = NULL;
     fflush(hysplex_stdout);\
 }
 
-#define HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, pre_run_stmt, post_run_stmt, func0, func1, ...) {\
+#define HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi, out, out_size, pre_run_stmt, post_run_stmt, func0, func1, ...) {\
         struct hysplex_stat hs[2] = { { #func0, 0, 0 }, { #func1, 0, 0 } };\
         if (warm_up) {\
             HYSPLEX_INFO("cache warming up... wait...\n");\
@@ -111,7 +119,7 @@ static FILE *hysplex_stdout = NULL;
         }\
         fprintf(hysplex_stdout, "\r                                             \r"\
                                 "hysplex info: done.\n\n");\
-        if (hysplex_get_winner_function(hysplex_stdout, hs, 2, iter_nr, 1) == -1) {\
+        if ((wi = hysplex_get_winner_function(out, out_size, hs, 2, iter_nr, 1)) == -1) {\
             HYSPLEX_WARN("The evaluated performances are statistically equal.\n"\
                          "              In fact you must not taking into consideration performance to pick one.\n")\
             exit(1);\
@@ -187,7 +195,20 @@ static FILE *hysplex_stdout = NULL;
 #define HYSPLEX_EVAL_PAIR(iter_nr, warm_up, pre_run_stmt, post_run_stmt, func0, func1, ...)\
     HYSPLEX_MAIN_BEGIN\
         HYSPLEX_BANNER\
-        HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, pre_run_stmt, post_run_stmt, func0, func1, __VA_ARGS__)\
+        ssize_t wi[2];\
+        char out[4096];\
+        HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi[0], out, sizeof(out) - 1,\
+                             pre_run_stmt, post_run_stmt, func0, func1, __VA_ARGS__)\
+        HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi[1], NULL, 0,\
+                             pre_run_stmt, post_run_stmt, func1, func0, __VA_ARGS__)\
+        if (wi[0] != wi[1]) {\
+            fprintf(hysplex_stdout, "%s", out);\
+        } else {\
+            HYSPLEX_WARN("The evaluated performances are inconlusive. They are almost the same in performance. A bias was detected.\n"\
+                         "              The second function seems to take advantage from the first, probably due to CPU cache.\n"\
+                         "              You should take into consideration other aspects than performance to pick one. It is up to you!\n")\
+            exit(1);\
+        }\
 HYSPLEX_MAIN_END
 
 #define HYSPLEX_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, ...)\
@@ -196,7 +217,7 @@ HYSPLEX_MAIN_END
                               __VA_ARGS__)\
 HYSPLEX_MAIN_END
 
-ssize_t hysplex_get_winner_function(FILE *hysplex_stdout, struct hysplex_stat *hs, const size_t hs_nr,
+ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hysplex_stat *hs, const size_t hs_nr,
                                     const size_t iter_nr, const int is_final);
 
 #ifdef __cplusplus

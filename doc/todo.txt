@@ -1,0 +1,5 @@
+(A) Implement group evaluation mode. +NewFeature
+(A) Add command line option reading. +NewFeature
+(A) Implement tests. +Test
+(A) Write documentation. +Documentation
+

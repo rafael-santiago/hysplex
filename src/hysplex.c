@@ -9,11 +9,14 @@
 
 #define HYSPLEX_CHI_SQUARE_ALPHA 3.841
 
-ssize_t hysplex_get_winner_function(FILE *hysplex_stdout, struct hysplex_stat *hs, const size_t hs_nr,
+ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hysplex_stat *hs, const size_t hs_nr,
                                     const size_t iter_nr, const int is_final) {
 
+    char *bp = buf;
+    size_t bp_size = buf_size;
+
     if (hs == NULL || hs_nr == 0 || iter_nr == 0) {
-        fprintf(hysplex_stdout, "hysplex error: invalid arguments.");
+        HYSPLEX_SNPRINTF(bp, bp_size, "hysplex error: invalid arguments.");
         exit(1);
     }
 
@@ -29,37 +32,36 @@ ssize_t hysplex_get_winner_function(FILE *hysplex_stdout, struct hysplex_stat *h
     }
 
     if (s[0] == NULL && s[1] == NULL) {
-        fprintf(hysplex_stdout, "hysplex error: no winners.\n");
+        HYSPLEX_SNPRINTF(bp, bp_size, "hysplex error: no winners.\n");
         return -1;
     } else if (s[0] != NULL && s[1] == NULL) {
-        fprintf(hysplex_stdout, "== The winner function is '%s'. It won %d in %d. Unable to get more stats.\n",
+        HYSPLEX_SNPRINTF(bp, bp_size, "== The winner function is '%s'. It won %d in %d. Unable to get more stats.\n",
                                 s[0]->func_name, s[0]->score, iter_nr);
         return 0;
     } else if (s[1] != NULL && s[0] == NULL) {
-        fprintf(hysplex_stdout, "== The winner function is '%s'. It won %d in %d. Unable to get more stats.\n",
+        HYSPLEX_SNPRINTF(bp, bp_size, "== The winner function is '%s'. It won %d in %d. Unable to get more stats.\n",
                                 s[1]->func_name, s[1]->score, iter_nr);
         return 1;
     }
 
     size_t ties_nr = s[0]->score + s[1]->score - iter_nr;
-    hysplex_stdout = stdout;
-    fprintf(hysplex_stdout, "== Hysplex %s stats\n\n", ((is_final) ? "final" : "intermediate"));
-    fprintf(hysplex_stdout, "== Functions '%s' and '%s' were executed %d time(s).\n", s[0]->func_name,
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Hysplex %s stats\n\n", ((is_final) ? "final" : "intermediate"));
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Functions '%s' and '%s' were executed %d time(s).\n", s[0]->func_name,
                                                                                      s[1]->func_name, iter_nr);
-    fprintf(hysplex_stdout, "== Function '%s' has won %d time(s).\n", s[0]->func_name, s[0]->score);
-    fprintf(hysplex_stdout, "== Function '%s' has won %d time(s).\n", s[1]->func_name, s[1]->score);
-    fprintf(hysplex_stdout, "== Total of tied executions: %d.\n", ties_nr);
-    fprintf(hysplex_stdout, "== Total of iterations with a winner: %d\n", iter_nr - ties_nr);
-    fprintf(hysplex_stdout, "== The average execution time of function '%s' was about %Lf secs.\n", s[0]->func_name,
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Function '%s' has won %d time(s).\n", s[0]->func_name, s[0]->score);
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Function '%s' has won %d time(s).\n", s[1]->func_name, s[1]->score);
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Total of tied executions: %d.\n", ties_nr);
+    HYSPLEX_SNPRINTF(bp, bp_size, "== Total of iterations with a winner: %d\n", iter_nr - ties_nr);
+    HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %Lf secs.\n", s[0]->func_name,
                                                                                                   s[0]->exec_time_s /
                                                                                                (long double)iter_nr);
-    fprintf(hysplex_stdout, "== The average execution time of function '%s' was about %Lf secs.\n", s[1]->func_name,
+    HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %Lf secs.\n", s[1]->func_name,
                                                                                                  s[1]->exec_time_s /
                                                                                                (long double)iter_nr);
     int wi = ((s[0]->score > s[1]->score) ? 0 : (s[1]->score > s[0]->score) ? 1 : -1);
 
     if (wi > -1) {
-        fprintf(stdout, "\n== The winner function is '%s'.\n\n", s[wi]->func_name);
+        HYSPLEX_SNPRINTF(bp, bp_size, "\n== The winner function is '%s'.\n\n", s[wi]->func_name);
         long double freqs[2] = { s[0]->score - ties_nr, s[1]->score - ties_nr };
         size_t effective_iters = iter_nr - ties_nr;
         long double exp_freq = effective_iters / 2;
@@ -69,15 +71,15 @@ ssize_t hysplex_get_winner_function(FILE *hysplex_stdout, struct hysplex_stat *h
 
         int is_relevant = (chi_square > HYSPLEX_CHI_SQUARE_ALPHA);
 
-        fprintf(hysplex_stdout, "== Chi-square = %.3Lf (sig = 0.05), ", chi_square);
-        fprintf(hysplex_stdout, "'%s' %s statistically faster than '%s'.\n", s[wi]->func_name,
+        HYSPLEX_SNPRINTF(bp, bp_size, "== Chi-square = %.3Lf (sig = 0.05), ", chi_square);
+        HYSPLEX_SNPRINTF(bp, bp_size, "'%s' %s statistically faster than '%s'.\n", s[wi]->func_name,
                                       (is_relevant ? "is" : "is NOT"), s[!wi]->func_name);
 
         if (!is_relevant) {
             wi = -1;
         }
     } else {
-        fprintf(stdout, "== No winner. We have a tie.\n\n");
+        HYSPLEX_SNPRINTF(bp, bp_size, "== No winner. We have a tie.\n\n");
     }
 
     return wi;
