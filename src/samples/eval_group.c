@@ -35,9 +35,9 @@ int open_based_file_exists(const char *filepath) {
 }
 
 HYSPLEX_FUNCTION_GROUP_BEGIN(func_group)
-    HYSPLEX_REGISTER_FUNCTION(open_based_file_exists),
     HYSPLEX_REGISTER_FUNCTION(fopen_based_file_exists),
-    HYSPLEX_REGISTER_FUNCTION(stat_based_file_exists)
+    HYSPLEX_REGISTER_FUNCTION(stat_based_file_exists),
+    HYSPLEX_REGISTER_FUNCTION(open_based_file_exists),
 HYSPLEX_FUNCTION_GROUP_END
 
-HYSPLEX_EVAL_GROUP(500000, 1, {}, {}, func_group, "eval_group.c");
+HYSPLEX_EVAL_GROUP(100000, 1, {}, {}, func_group, "eval_group.c");

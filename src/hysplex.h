@@ -50,9 +50,9 @@ struct hysplex_eval_group {
 static FILE *hysplex_stdout = NULL;
 
 #define HYSPLEX_BANNER {\
-    fprintf(hysplex_stdout, " _     _ __   __  _____   _____          ______ _     _\n"\
-                            " |_____|   \\_/   |_____  |_____] |      |______  \\___/ \n"\
-                            " |     |    |     _____| |       |_____ |______ _/   \\_\n\n");\
+    fprintf(hysplex_stdout, "_     _ __   __  _____   _____          ______ _     _\n"\
+                            "|_____|   \\_/   |_____  |_____] |      |______  \\___/ \n"\
+                            "|     |    |     _____| |       |_____ |______ _/   \\_\n\n");\
 }
 
 #define HYSPLEX_ERROR(err) {\
