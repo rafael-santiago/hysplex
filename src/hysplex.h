@@ -31,6 +31,12 @@ struct hysplex_eval_group {
     hysplex_meta_func func;
 };
 
+static FILE *hysplex_stdout = NULL;
+
+static char **hysplex_argv = NULL;
+
+static int hysplex_argc = 0;
+
 #define HYSPLEX_FUNCTION_GROUP_BEGIN(name) struct hysplex_eval_group name[] = {
 
 #define HYSPLEX_REGISTER_FUNCTION(func) { #func, (hysplex_meta_func)func }
@@ -46,8 +52,6 @@ struct hysplex_eval_group {
         buf_size -= strlen(buf);\
     }\
 }
-
-static FILE *hysplex_stdout = NULL;
 
 #define HYSPLEX_BANNER {\
     fprintf(hysplex_stdout, "_     _ __   __  _____   _____          ______ _     _\n"\
@@ -215,7 +219,9 @@ static FILE *hysplex_stdout = NULL;
 
 #define HYSPLEX_MAIN_BEGIN\
     int main(int argc, char **argv) {\
-        hysplex_stdout = stdout;
+        hysplex_stdout = stdout;\
+        hysplex_set_argc_argv(argc, argv);\
+        hysplex_validate_user_options();\
 
 #define HYSPLEX_MAIN_END\
     return 0;\
@@ -226,7 +232,12 @@ static FILE *hysplex_stdout = NULL;
         HYSPLEX_BANNER\
         ssize_t wi[2];\
         char out[4096];\
-        HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi[0], out, sizeof(out) - 1,\
+        size_t curr_iter_nr = iter_nr;\
+        const char *iterations = hysplex_get_option("iterations", NULL);\
+        if (iterations != NULL) {\
+            curr_iter_nr = strtoul(iterations, NULL, 10);\
+        }\
+        HYSPLEX_DO_EVAL_PAIR(curr_iter_nr, warm_up, wi[0], out, sizeof(out) - 1,\
                              pre_run_stmt, post_run_stmt, func0, func1, __VA_ARGS__)\
         HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi[1], NULL, 0,\
                              pre_run_stmt, post_run_stmt, func1, func0, __VA_ARGS__)\
@@ -243,12 +254,27 @@ HYSPLEX_MAIN_END
 #define HYSPLEX_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, ...)\
     HYSPLEX_MAIN_BEGIN\
         HYSPLEX_BANNER\
-        HYSPLEX_DO_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group,\
+        size_t curr_iter_nr = iter_nr;\
+        const char *iterations = hysplex_get_option("iterations", NULL);\
+        if (iterations != NULL) {\
+            curr_iter_nr = strtoul(iterations, NULL, 10);\
+        }\
+        HYSPLEX_DO_EVAL_GROUP(curr_iter_nr, warm_up, pre_run_stmt, post_run_stmt, group,\
                               HYSPLEX_FUNCTION_GROUP_SIZE(group), __VA_ARGS__)\
 HYSPLEX_MAIN_END
 
 ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hysplex_stat *hs, const size_t hs_nr,
                                     const size_t iter_nr, const int is_final);
+
+void hysplex_set_argc_argv(const int argc, char **argv);
+
+const char *hysplex_get_option(const char *option, const char *default_option);
+
+int hysplex_get_bool_option(const char *option, const int default_option);
+
+int hysplex_is_valid_number(const char *number, const size_t number_size);
+
+void hysplex_validate_user_options(void);
 
 #ifdef __cplusplus
 }

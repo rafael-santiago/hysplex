@@ -6,8 +6,19 @@
  * LICENSE file in the root directory of this source tree.
  */
 #include <hysplex.h>
+#include <string.h>
+#include <ctype.h>
 
-#define HYSPLEX_CHI_SQUARE_ALPHA 3.841
+//#define HYSPLEX_CHI_SQUARE_ALPHA 3.841
+
+static long double HYSPLEX_CHI_SQUARE_ALPHA[] = {
+    /*90%    95%    97%    99%    100%*/
+    2.706, 3.841, 5.024, 6.635, 10.828,
+};
+
+static int hysplex_get_option_index(size_t *data_offset, const char *option, const int bool);
+
+static inline long double hysplex_get_chi_square_alpha(void);
 
 ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hysplex_stat *hs, const size_t hs_nr,
                                     const size_t iter_nr, const int is_final) {
@@ -69,9 +80,9 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
         freqs[1] = (((long double)freqs[1] - exp_freq) * ((long double)freqs[1] - exp_freq)) / exp_freq;
         long double chi_square = freqs[0] + freqs[1];
 
-        int is_relevant = (chi_square > HYSPLEX_CHI_SQUARE_ALPHA);
+        int is_relevant = (chi_square > hysplex_get_chi_square_alpha());
 
-        HYSPLEX_SNPRINTF(bp, bp_size, "== Chi-square = %.3Lf (sig = 0.05), ", chi_square);
+        HYSPLEX_SNPRINTF(bp, bp_size, "== Chi-square = %.3Lf (certainty = %s%), ", chi_square, hysplex_get_option("certainty-perc", "95"));
         HYSPLEX_SNPRINTF(bp, bp_size, "'%s' %s statistically faster than '%s'.\n", s[wi]->func_name,
                                       (is_relevant ? "is" : "is NOT"), s[!wi]->func_name);
 
@@ -83,6 +94,98 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
     }
 
     return wi;
+}
+
+void hysplex_set_argc_argv(const int argc, char **argv) {
+    hysplex_argc = argc;
+    hysplex_argv = argv;
+}
+
+static int hysplex_get_option_index(size_t *data_offset, const char *option, const int bool) {
+    if (option == NULL || (!bool && data_offset == NULL)) {
+        return -1;
+    }
+
+    char temp[4096];
+    snprintf(temp, sizeof(temp) - 1, ((bool) ? "--%s" : "--%s="), option);
+    if (!bool) {
+        *data_offset = 0;
+    }
+
+    for (size_t a = 0; a < hysplex_argc; ++a) {
+        int has = ((bool) ? (strcmp(temp, hysplex_argv[a]) == 0) : (strstr(hysplex_argv[a], temp) == &hysplex_argv[a][0]));
+        if (has){
+            if (!bool) {
+                *data_offset = strlen(temp);
+            }
+            return a;
+        }
+    }
+
+    return -1;
+}
+
+const char *hysplex_get_option(const char *option, const char *default_option) {
+    size_t data_offset;
+    int o = hysplex_get_option_index(&data_offset, option, 0);
+    return ((o > -1) ? ((&hysplex_argv[o][0]) + data_offset) : default_option);
+}
+
+int hysplex_get_bool_option(const char *option, const int default_option) {
+    return ((hysplex_get_option_index(NULL, option, 1) > -1) ? 1 : default_option);
+}
+
+int hysplex_is_valid_number(const char *number, const size_t number_size) {
+    if (number == NULL || number_size == 0) {
+        return 0;
+    }
+    const char *np = number, *np_end = np + number_size;
+    while (np != np_end) {
+        if (!isdigit(*np)) {
+            return 0;
+        }
+        np++;
+    }
+    return 1;
+}
+
+static inline long double hysplex_get_chi_square_alpha(void) {
+    static ssize_t alpha_index = -1;
+    if (alpha_index == -1) {
+        const char *certainty_perc = hysplex_get_option("certainty-perc", "95");
+        if (certainty_perc == NULL) {
+            HYSPLEX_ERROR("Invalid data in certainty-perc option.");
+        }
+        if (strcmp(certainty_perc, "90") == 0) {
+            alpha_index = 0;
+        } else if (strcmp(certainty_perc, "95") == 0) {
+            alpha_index = 1;
+        } else if (strcmp(certainty_perc, "97") == 0) {
+            alpha_index = 2;
+        } else if (strcmp(certainty_perc, "99") == 0) {
+            alpha_index = 3;
+        } else if (strcmp(certainty_perc, "100") == 0) {
+            alpha_index = 4;
+        } else {
+            HYSPLEX_ERROR("Unknown data in certainty-perc option.");
+        }
+    }
+    return HYSPLEX_CHI_SQUARE_ALPHA[alpha_index];
+}
+
+void hysplex_validate_user_options(void) {
+    const char *option = hysplex_get_option("certainty-perc", "95");
+    if (strcmp(option, "90") != 0 &&
+        strcmp(option, "95") != 0 &&
+        strcmp(option, "97") != 0 &&
+        strcmp(option, "99") != 0 &&
+        strcmp(option, "100") != 0) {
+        HYSPLEX_ERROR("Invalid data in 'certainty-perc' option. It must be '90', '95' (default), '97', '99' or '100'.");
+    }
+    option = hysplex_get_option("iterations", "1");
+    if (!hysplex_is_valid_number(option, strlen(option)) && strcmp(option, "0") != 0) {
+        HYSPLEX_ERROR("Invalid data in 'iterations' option. It must be a valid positive integer greater than zero.");
+    }
 }
 
 #undef HYSPLEX_CHI_SQUARE_ALPHA
