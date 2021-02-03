@@ -16,7 +16,8 @@ eval-pair.preloading() {
 }
 
 eval-pair.prologue() {
-    $src.ls("evail_pair.c");
+    $src.clear();
+    $src.add_item("eval_pair.c");
     $includes = hefesto.sys.get_option("includes");
     $cflags = hefesto.sys.get_option("cflags");
     $libraries = hefesto.sys.get_option("libraries");
@@ -28,6 +29,31 @@ eval-pair.prologue() {
 }
 
 evail-pair.epilogue() {
+    if (hefesto.sys.last_forge_result() == 0) {
+        hefesto.sys.echo("BUILD INFO: done.\n");
+    }
+}
+
+project eval-group : toolset $curr_toolset : $src, $includes, $cflags, $libraries, $ldflags, $appname;
+
+eval-group.preloading() {
+    $curr_toolset = get_app_toolset();
+}
+
+eval-group.prologue() {
+    $src.clear();
+    $src.add_item("eval_group.c");
+    $includes = hefesto.sys.get_option("includes");
+    $cflags = hefesto.sys.get_option("cflags");
+    $libraries = hefesto.sys.get_option("libraries");
+    $ldflags = hefesto.sys.get_option("ldflags");
+    $appname = "eval-group";
+    if (hefesto.sys.os_name() == "windows") {
+        $appname = $appname + ".exe";
+    }
+}
+
+eval-group.epilogue() {
     if (hefesto.sys.last_forge_result() == 0) {
         hefesto.sys.echo("BUILD INFO: done.\n");
     }
