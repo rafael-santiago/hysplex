@@ -10,6 +10,7 @@ include ~/toolsets/gcc/gcc-lib.hsl
 include ~/toolsets/clang/clang-app.hsl
 include ~/toolsets/clang/clang-lib.hsl
 include ~/toolsets/common/utils/lang/c/dependency_scanner.hsl
+include ~/fsutil.hsl
 
 local function runbk(cmdline type string) : result type int {
     var hiding_postfix type string;
@@ -50,4 +51,20 @@ function get_lib_toolset() : result type string {
 
 function get_app_toolset() : result type string {
     result get_toolset() + "-c-app";
+}
+
+function build_libcutest() : result type none {
+    if (isfile("../lib/cutest/src/lib/libcutest.a") == 0) {
+        var oldcwd type string;
+        $oldcwd = hefesto.sys.pwd();
+        if (hefesto.sys.cd("../lib/cutest/src") == 0) {
+            hefesto.sys.echo("BUILD ERROR: Unable to find libcutest src directory.\n");
+            hefesto.project.abort(1);
+        }
+        if (hefesto.sys.run("hefesto") != 0) {
+            hefesto.sys.echo("BUILD ERROR: Unable to build libcutest.\n");
+            hefesto.project.abort(1);
+        }
+        hefesto.sys.cd($oldcwd);
+    }
 }
