@@ -16,6 +16,61 @@ static char *argv[] = {
 
 static int argc = sizeof(argv) / sizeof(argv[0]);
 
+static char invalid_certainty_perc[] = "--certainty-perc=5";
+static char valid_certainty_perc90[] = "--certainty-perc=90";
+static char valid_certainty_perc95[] = "--certainty-perc=95";
+static char valid_certainty_perc97[] = "--certainty-perc=97";
+static char valid_certainty_perc99[] = "--certainty-perc=99";
+static char valid_certainty_perc100[] = "--certainty-perc=100";
+static char invalid_iterations_negative[] = "--iterations=-382";
+static char invalid_iterations_zero[] = "--iterations=0000000000";
+static char valid_iterations[] = "--iterations=1234567890";
+
+static char *invalid_certainty_perc_argv[] = {
+    app_path,
+    invalid_certainty_perc,
+};
+
+static char *valid_certainty_perc90_argv[] = {
+    app_path,
+    valid_certainty_perc90,
+};
+
+static char *valid_certainty_perc95_argv[] = {
+    app_path,
+    valid_certainty_perc95,
+};
+
+static char *valid_certainty_perc97_argv[] = {
+    app_path,
+    valid_certainty_perc97,
+};
+
+static char *valid_certainty_perc99_argv[] = {
+    app_path,
+    valid_certainty_perc99,
+};
+
+static char *valid_certainty_perc100_argv[] = {
+    app_path,
+    valid_certainty_perc100,
+};
+
+static char *invalid_iterations_negative_argv[] = {
+    app_path,
+    invalid_iterations_negative,
+};
+
+static char *invalid_iterations_zero_argv[] = {
+    app_path,
+    invalid_iterations_zero,
+};
+
+static char *valid_iterations_argv[] = {
+    app_path,
+    valid_iterations_argv,
+};
+
 CUTE_DECLARE_TEST_CASE(hysplex_get_option_tests);
 CUTE_DECLARE_TEST_CASE(hysplex_get_bool_option_tests);
 CUTE_DECLARE_TEST_CASE(hysplex_is_valid_number_tests);
@@ -109,7 +164,71 @@ CUTE_TEST_CASE(hysplex_is_valid_number_tests)
 CUTE_TEST_CASE_END
 
 CUTE_TEST_CASE(hysplex_validate_user_options_tests)
+    struct test_ctx {
+        char **argv;
+        int argc;
+        int expected;
+    } test_ctx[] = {
+        { invalid_certainty_perc_argv, sizeof(invalid_certainty_perc_argv) / sizeof(invalid_certainty_perc_argv[0]), 0 },
+        { valid_certainty_perc90_argv, sizeof(valid_certainty_perc90_argv) / sizeof(valid_certainty_perc90_argv[0]), 1 },
+        { valid_certainty_perc95_argv, sizeof(valid_certainty_perc95_argv) / sizeof(valid_certainty_perc95_argv[0]), 1 },
+        { valid_certainty_perc97_argv, sizeof(valid_certainty_perc97_argv) / sizeof(valid_certainty_perc97_argv[0]), 1 },
+        { valid_certainty_perc99_argv, sizeof(valid_certainty_perc99_argv) / sizeof(valid_certainty_perc99_argv[0]), 1 },
+        { valid_certainty_perc100_argv, sizeof(valid_certainty_perc100_argv) / sizeof(valid_certainty_perc100_argv[0]), 1 },
+        { invalid_iterations_negative_argv, sizeof(invalid_iterations_negative_argv) /
+                                                    sizeof(invalid_iterations_negative_argv[0]), 0 },
+        { invalid_iterations_zero_argv, sizeof(invalid_iterations_zero_argv) / sizeof(invalid_iterations_zero_argv[0]), 0 },
+        { valid_iterations_argv, sizeof(valid_iterations_argv) / sizeof(valid_iterations_argv[0]), 1 },
+    }, *test, *test_end;
+    test = &test_ctx[0];
+    test_end = test + sizeof(test_ctx) / sizeof(test_ctx[0]);
+    while (test != test_end) {
+        hysplex_set_argc_argv(test->argc, test->argv);
+        CUTE_ASSERT(hysplex_validate_user_options() == test->expected);
+        test++;
+    }
+    hysplex_set_argc_argv(0, NULL);
 CUTE_TEST_CASE_END
 
 CUTE_TEST_CASE(hysplex_get_winner_function_tests)
+    char buf[4096];
+    struct hysplex_stat hs[2];
+
+    hs[0].exec_time_s = 5;
+    hs[0].score = 70;
+    hs[0].func_name = "CARA";
+    hs[1].exec_time_s = 10;
+    hs[1].score = 30;
+    hs[1].func_name = "COROA";
+
+    ssize_t wi = hysplex_get_winner_function(buf, sizeof(buf) - 1, &hs[0], 2, 100, 0);
+
+    CUTE_ASSERT(strstr(buf, "== Hysplex intermediate stats\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Hysplex final stats\n") == NULL);
+    CUTE_ASSERT(strstr(buf, "== Functions 'CARA' and 'COROA' were executed 100 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Function 'CARA' has won 70 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Function 'COROA' has won 30 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Total of tied executions: 0.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Total of iterations with a winner: 100\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The average execution time of function 'CARA' was about 0.050000 secs.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The average execution time of function 'COROA' was about 0.100000 secs.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The winner function is 'CARA'.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Chi-square = 16.000 (certainty = 95%), 'CARA' is statistically faster than 'COROA'.") != NULL);
+
+    hs[0].score += 20;
+    hs[1].score += 20;
+
+    wi = hysplex_get_winner_function(buf, sizeof(buf) - 1, &hs[0], 2, 100, 1);
+
+    CUTE_ASSERT(strstr(buf, "== Hysplex final stats\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Hysplex intermediate stats\n") == NULL);
+    CUTE_ASSERT(strstr(buf, "== Functions 'CARA' and 'COROA' were executed 100 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Function 'CARA' has won 90 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Function 'COROA' has won 50 time(s).\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Total of tied executions: 20.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Total of iterations with a winner: 80\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The average execution time of function 'CARA' was about 0.050000 secs.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The average execution time of function 'COROA' was about 0.100000 secs.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== The winner function is 'CARA'.\n") != NULL);
+    CUTE_ASSERT(strstr(buf, "== Chi-square = 25.000 (certainty = 95%), 'CARA' is statistically faster than 'COROA'.") != NULL);
 CUTE_TEST_CASE_END

@@ -9,8 +9,6 @@
 #include <string.h>
 #include <ctype.h>
 
-//#define HYSPLEX_CHI_SQUARE_ALPHA 3.841
-
 static long double HYSPLEX_CHI_SQUARE_ALPHA[] = {
     /*90%    95%    97%    99%    100%*/
     2.706, 3.841, 5.024, 6.635, 10.828,
@@ -37,6 +35,7 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
         if (hs[h].score > 0) {
             if (i == 2) {
                 HYSPLEX_ERROR("hysplex_stat has more than two winner candidates.");
+                exit(1);
             }
             s[i++] = &hs[h];
         }
@@ -55,7 +54,7 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
         return 1;
     }
 
-    size_t ties_nr = s[0]->score + s[1]->score - iter_nr;
+    size_t ties_nr = (s[0]->score + s[1]->score - iter_nr) / 2;
     HYSPLEX_SNPRINTF(bp, bp_size, "== Hysplex %s stats\n\n", ((is_final) ? "final" : "intermediate"));
     HYSPLEX_SNPRINTF(bp, bp_size, "== Functions '%s' and '%s' were executed %d time(s).\n", s[0]->func_name,
                                                                                      s[1]->func_name, iter_nr);
@@ -155,6 +154,7 @@ static inline long double hysplex_get_chi_square_alpha(void) {
         const char *certainty_perc = hysplex_get_option("certainty-perc", "95");
         if (certainty_perc == NULL) {
             HYSPLEX_ERROR("Invalid data in certainty-perc option.");
+            exit(1);
         }
         if (strcmp(certainty_perc, "90") == 0) {
             alpha_index = 0;
@@ -168,12 +168,13 @@ static inline long double hysplex_get_chi_square_alpha(void) {
             alpha_index = 4;
         } else {
             HYSPLEX_ERROR("Unknown data in certainty-perc option.");
+            exit(1);
         }
     }
     return HYSPLEX_CHI_SQUARE_ALPHA[alpha_index];
 }
 
-void hysplex_validate_user_options(void) {
+int hysplex_validate_user_options(void) {
     const char *option = hysplex_get_option("certainty-perc", "95");
     if (strcmp(option, "90") != 0 &&
         strcmp(option, "95") != 0 &&
@@ -181,11 +182,12 @@ void hysplex_validate_user_options(void) {
         strcmp(option, "99") != 0 &&
         strcmp(option, "100") != 0) {
         HYSPLEX_ERROR("Invalid data in 'certainty-perc' option. It must be '90', '95' (default), '97', '99' or '100'.");
+        return 0;
     }
     option = hysplex_get_option("iterations", "1");
-    if (!hysplex_is_valid_number(option, strlen(option)) && strcmp(option, "0") != 0) {
+    if (!hysplex_is_valid_number(option, strlen(option)) || strtoul(option, NULL, 10) == 0) {
         HYSPLEX_ERROR("Invalid data in 'iterations' option. It must be a valid positive integer greater than zero.");
+        return 0;
     }
+    return 1;
 }
-
-#undef HYSPLEX_CHI_SQUARE_ALPHA

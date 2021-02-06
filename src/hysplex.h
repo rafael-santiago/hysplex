@@ -61,7 +61,6 @@ static int hysplex_argc = 0;
 
 #define HYSPLEX_ERROR(err) {\
     fprintf(stderr, "hysplex error: "err"\n");\
-    exit(1);\
 }
 
 #define HYSPLEX_INFO(info) {\
@@ -221,7 +220,9 @@ static int hysplex_argc = 0;
     int main(int argc, char **argv) {\
         hysplex_stdout = stdout;\
         hysplex_set_argc_argv(argc, argv);\
-        hysplex_validate_user_options();\
+        if (!hysplex_validate_user_options()) {\
+            exit(1);\
+        }
 
 #define HYSPLEX_MAIN_END\
     return 0;\
@@ -274,7 +275,7 @@ int hysplex_get_bool_option(const char *option, const int default_option);
 
 int hysplex_is_valid_number(const char *number, const size_t number_size);
 
-void hysplex_validate_user_options(void);
+int hysplex_validate_user_options(void);
 
 #ifdef __cplusplus
 }
