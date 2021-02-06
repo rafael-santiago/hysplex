@@ -68,7 +68,7 @@ static char *invalid_iterations_zero_argv[] = {
 
 static char *valid_iterations_argv[] = {
     app_path,
-    valid_iterations_argv,
+    valid_iterations,
 };
 
 CUTE_DECLARE_TEST_CASE(hysplex_get_option_tests);
