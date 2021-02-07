@@ -1,6 +1,7 @@
 #include <cutest.h>
 #include <hysplex.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static char app_path[] = "./hysplex-tests";
 static char option1[] = "--foo=bar";
@@ -25,6 +26,13 @@ static char valid_certainty_perc100[] = "--certainty-perc=100";
 static char invalid_iterations_negative[] = "--iterations=-382";
 static char invalid_iterations_zero[] = "--iterations=0000000000";
 static char valid_iterations[] = "--iterations=1234567890";
+
+static char out[] = "--out=hysplex.log";
+
+static char *poke_tests_argv[] = {
+    app_path,
+    out,
+};
 
 static char *invalid_certainty_perc_argv[] = {
     app_path,
@@ -76,6 +84,7 @@ CUTE_DECLARE_TEST_CASE(hysplex_get_bool_option_tests);
 CUTE_DECLARE_TEST_CASE(hysplex_is_valid_number_tests);
 CUTE_DECLARE_TEST_CASE(hysplex_validate_user_options_tests);
 CUTE_DECLARE_TEST_CASE(hysplex_get_winner_function_tests);
+CUTE_DECLARE_TEST_CASE(hysplex_poke_tests);
 
 CUTE_DECLARE_TEST_CASE(hysplex_tests);
 
@@ -85,6 +94,7 @@ CUTE_TEST_CASE(hysplex_tests)
     CUTE_RUN_TEST(hysplex_is_valid_number_tests);
     CUTE_RUN_TEST(hysplex_validate_user_options_tests);
     CUTE_RUN_TEST(hysplex_get_winner_function_tests);
+    CUTE_RUN_TEST(hysplex_poke_tests);
 CUTE_TEST_CASE_END
 
 CUTE_MAIN(hysplex_tests)
@@ -231,4 +241,49 @@ CUTE_TEST_CASE(hysplex_get_winner_function_tests)
     CUTE_ASSERT(strstr(buf, "== The average execution time of function 'COROA' was about 0.100000 secs.\n") != NULL);
     CUTE_ASSERT(strstr(buf, "== The winner function is 'CARA'.\n") != NULL);
     CUTE_ASSERT(strstr(buf, "== Chi-square = 25.000 (certainty = 95%), 'CARA' is statistically faster than 'COROA'.") != NULL);
+CUTE_TEST_CASE_END
+
+CUTE_TEST_CASE(hysplex_poke_tests)
+    struct test_ctx {
+        const char *cmd;
+        const char *expected;
+        int success;
+    } test_ctx[] = {
+#if !defined(_WIN32)
+        { "../../samples/eval-pair --out=hysplex.log", "'plain_sum' is statistically faster than 'delayed_sum'.", 1 },
+        { "../../samples/eval-pair-inconclusive --out=hysplex.log", "The evaluated performances are inconclusive.", 0 },
+        { "../../samples/eval-group --out=hysplex.log",
+          "'stat_based_file_exists' is statistically faster than 'open_based_file_exists'.", 1 },
+#else
+        { "..\\..\\samples\\eval-pair.exe --out=hysplex.log", "'plain_sum' is statistically faster than 'delayed_sum'.", 1 },
+        { "..\\..\\samples\\eval-pair-inconclusive.exe --out=hysplex.log",
+          "The evaluated performances are inconclusive.", 0 },
+        { "..\\..\\samples\\eval-group.exe --out=hysplex.log",
+          "'stat_based_file_exists' is statistically faster than 'open_based_file_exists'.", 1 },
+#endif
+    }, *test, *test_end;
+    int argc = sizeof(poke_tests_argv) / sizeof(poke_tests_argv[0]);
+    test = &test_ctx[0];
+    test_end = test + sizeof(test_ctx) / sizeof(test_ctx[0]);
+    hysplex_set_argc_argv(argc, poke_tests_argv);
+    while (test != test_end) {
+        remove("hysplex.log");
+        if (test->success) {
+            CUTE_ASSERT(system(test->cmd) == 0);
+        } else {
+            CUTE_ASSERT(system(test->cmd) != 0);
+        }
+        struct stat st;
+        CUTE_ASSERT(stat("hysplex.log", &st) == 0);
+        FILE *fp = fopen("hysplex.log", "r");
+        CUTE_ASSERT(fp != NULL);
+        char *buf = (char *) calloc(sizeof(char), st.st_size + 1);
+        CUTE_ASSERT(buf != NULL);
+        fread(buf, 1, st.st_size, fp);
+        fclose(fp);
+        CUTE_ASSERT(strstr(buf, test->expected) != NULL);
+        free(buf);
+        test++;
+    }
+    remove("hysplex.log");
 CUTE_TEST_CASE_END

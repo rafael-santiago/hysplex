@@ -36,6 +36,7 @@ hysplex-lib.prologue() {
 
 hysplex-lib.epilogue() {
     if (hefesto.sys.last_forge_result() == 0) {
+        build_samples();
         if(hefesto.sys.cd("test") == 0) {
             hefesto.sys.echo("BUILD ERROR: Test directory not found.\n");
             hefesto.project.abort(1);

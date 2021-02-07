@@ -131,6 +131,13 @@ static int hysplex_argc = 0;
 
 #define HYSPLEX_DO_EVAL_GROUP(iter_nr, warm_up, pre_run_stmt, post_run_stmt, group, group_nr, ...) {\
     ssize_t lg = 0;\
+    FILE *user_out = hysplex_stdout;\
+    const char *out_option = hysplex_get_option("out", NULL);\
+    if (out_option != NULL) {\
+        if ((user_out = fopen(out_option, "a")) == NULL) {\
+            user_out = hysplex_stdout;\
+        }\
+    }\
     for (ssize_t g = 1; g < group_nr; g++) {\
         struct hysplex_stat hs[2];\
         ssize_t wi[2];\
@@ -204,7 +211,10 @@ static int hysplex_argc = 0;
             }\
         }\
         if (wi[0] == wi[1]) {\
-            HYSPLEX_WARN("The evaluated performances are inconlusive. They are almost the same in performance. A bias was detected.\n"\
+            if (user_out != hysplex_stdout) {\
+                hysplex_stdout = user_out;\
+            }\
+            HYSPLEX_WARN("The evaluated performances are inconclusive. They are almost the same in performance. A bias was detected.\n"\
                          "              The second function seems to take advantage from the first, probably due to CPU cache.\n"\
                          "              You should take into consideration other aspects than performance to pick one. It is up to you!\n")\
             exit(1);\
@@ -212,7 +222,10 @@ static int hysplex_argc = 0;
         if (wi[0] == 1) {\
             lg = g;\
         }\
-        fprintf(hysplex_stdout, "%s\n", out);\
+        fprintf(user_out, "%s\n", out);\
+    }\
+    if (user_out != hysplex_stdout) {\
+        fclose(user_out);\
     }\
 }
 
@@ -242,13 +255,31 @@ static int hysplex_argc = 0;
                              pre_run_stmt, post_run_stmt, func0, func1, __VA_ARGS__)\
         HYSPLEX_DO_EVAL_PAIR(iter_nr, warm_up, wi[1], NULL, 0,\
                              pre_run_stmt, post_run_stmt, func1, func0, __VA_ARGS__)\
+        const char *out_option = hysplex_get_option("out", NULL);\
+        FILE *user_out = hysplex_stdout;\
+        if (out_option != NULL) {\
+            if ((user_out = fopen(out_option, "a")) == NULL) {\
+                user_out = hysplex_stdout;\
+            }\
+        }\
         if (wi[0] != wi[1]) {\
-            fprintf(hysplex_stdout, "%s", out);\
+            fprintf(user_out, "%s", out);\
         } else {\
-            HYSPLEX_WARN("The evaluated performances are inconlusive. They are almost the same in performance. A bias was detected.\n"\
+            FILE *temp = NULL;\
+            if (user_out != hysplex_stdout) {\
+                temp = hysplex_stdout;\
+                hysplex_stdout = user_out;\
+            }\
+            HYSPLEX_WARN("The evaluated performances are inconclusive. They are almost the same in performance. A bias was detected.\n"\
                          "              The second function seems to take advantage from the first, probably due to CPU cache.\n"\
                          "              You should take into consideration other aspects than performance to pick one. It is up to you!\n")\
+            if (temp != NULL) {\
+                hysplex_stdout = temp;\
+            }\
             exit(1);\
+        }\
+        if (user_out != hysplex_stdout) {\
+            fclose(user_out);\
         }\
 HYSPLEX_MAIN_END
 

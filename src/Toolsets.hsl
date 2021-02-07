@@ -68,3 +68,14 @@ function build_libcutest() : result type none {
         hefesto.sys.cd($oldcwd);
     }
 }
+
+function build_samples() : result type none {
+    if (hefesto.sys.cd("samples") != 1) {
+        hefesto.sys.echo("BUILD ERROR: Unable to find samples' sources.\n");
+        hefesto.project.abort(1);
+    }
+    if (hefesto.sys.run("hefesto") != 0) {
+        hefesto.project.abort(1);
+    }
+    hefesto.sys.cd("..");
+}
