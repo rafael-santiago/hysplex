@@ -1,0 +1,203 @@
+_     _ __   __  _____   _____          ______ _     _
+|_____|   \_/   |_____  |_____] |      |______  \___/
+|     |    |     _____| |       |_____ |______ _/   \_
+-------------------------------------------------------
+
+
+What it is about?
+-----------------
+
+Hysplex is a C library that helps your measure performance of different
+implementations of a function.
+
+What is the easiest way of cloning it?
+--------------------------------------
+
+_ git clone https://github.com/rafael-santiago/hysplex hysplex
+
+How can I build it?
+-------------------
+
+You need to use my personal build system called Hefesto
+<https://github.com/rafael-santiago/hefesto>.
+
+After following the steps to make Hefesto work on your environment,
+you need to move to src sub-directory and invoke Hefesto from there.
+
+_ cd hysplex/src
+_ hefesto
+
+If all worked you will get hysplex ar file at '../lib/libhysplex.a'.
+
+Using hysplex
+-------------
+
+Hysplex is based on a internal DSL. The following code will able to
+measure the performance of two different implementation of a simple
+integer sum function:
+
+    #include <hysplex.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    static int plain_sum(const int a, const int b) {
+        return a + b;
+    }
+
+    static int delayed_sum(const int a, const int b) {
+        usleep(1);
+        return a + b;
+    }
+
+    HYSPLEX_EVAL_PAIR(100000, 1, {}, {}, plain_sum, delayed_sum, 1, 2);
+
+The only DSL statement that is necessary to do the task is HYSPLEX_EVAL_PAIR.
+
+HYSPLEX_EVAL_PAIR allows you measure performance of two functions. It expects:
+
+    - a default number of iterations (how many times those functions will run).
+
+    - if you want or not warm up (run functions without any benchmarking just
+      to warm up cache).
+
+    - a set of pre statements to execute before calling the functions.
+
+    - a set of post statements to execute after calling the functions.
+
+    - the two functions.
+
+    - the parameter list that must be passed to those functions.
+
+In order to compile you need to include -I<directory path to hysplex.h>,
+-L<directory path to libhysplex.a> -lhysplex. E.g.:
+
+_ gcc -I~/hysplex/src -L~/hysplex/lib eval-pair.c -oeval-pair -lhysplex
+
+After compiling the source you will get a application suitable to
+measure your functions and present to you the results of all benchmarking.
+
+All you should do is:
+
+_ ./eval-pair
+
+You will get a thing similar to this:
+
+    == Hysplex final stats
+
+    == Functions 'plain_sum' and 'delayed_sum' were executed 100000 time(s).
+    == Function 'plain_sum' has won 99963 time(s).
+    == Function 'delayed_sum' has won 144 time(s).
+    == Total of tied executions: 53.
+    == Total of iterations with a winner: 99947
+    == The average execution time of function 'plain_sum' was about 0.000000 secs.
+    == The average execution time of function 'delayed_sum' was about 0.000011 secs.
+
+    == The winner function is 'plain_sum'.
+
+    == Chi-square = 99692.192 (certainty = 95%), 'plain_sum' is statistically faster than 'delayed_sum'.
+
+As you can see, Hysplex figured out that 'plain_sum' is really faster than 'delayed_sum' (of course).
+The nice thing here is that a Chi-square test was executed against the benchmarking data in order to
+ensure relevance or not between the found performance difference.
+
+You can configure at run-time Chi-square's certainty by passing to your benchmarking executable the
+option '--certainty-perc=<percentual>'. The percentual values can be: 90, 95 (default), 97, 99 and 100.
+
+You can also overwrite the total of iterations passing the option '--iterations=<value>'.
+
+If you want to divert the results to a file use the option '--out=<file path>'. If the file path provided
+already exists the result data will be appended to this file.
+
+Sometimes you will implement a bunch of different implementations of the same functions. Test them paired
+can be tedious when using HYSPLEX_EVAIL_PAIR besides error prone (repetitive tasks delegated to Humans
+lead to errors, avoid doing this, better using your brain to think).
+
+To test a group of functions you should use HYSPLEX_EVAL_GROUP. When using eval group DSL statement
+you need to pass a function group declared by using HYSPLEX_FUNCTION_GROUP. Take a look at the
+following code:
+
+    #include <hysplex.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+
+    int stat_based_file_exists(const char *filepath) {
+        if (filepath == NULL) {
+            return 0;
+        }
+        struct stat st;
+        return (stat(filepath, &st) == 0);
+    }
+
+    int fopen_based_file_exists(const char *filepath) {
+        if (filepath == NULL) {
+            return 0;
+        }
+        FILE *fp;
+        int retval = ((fp = fopen(filepath, "r")) != NULL);
+        if (retval) {
+            fclose(fp);
+        }
+        return retval;
+    }
+
+    int open_based_file_exists(const char *filepath) {
+        if (filepath == NULL) {
+            return 0;
+        }
+        int fd;
+        int retval = ((fd = open(filepath, O_RDONLY)) != -1);
+        if (retval > -1) {
+            close(fd);
+        }
+        return retval;
+    }
+
+    HYSPLEX_FUNCTION_GROUP_BEGIN(func_group)
+        HYSPLEX_REGISTER_FUNCTION(fopen_based_file_exists),
+        HYSPLEX_REGISTER_FUNCTION(stat_based_file_exists),
+        HYSPLEX_REGISTER_FUNCTION(open_based_file_exists),
+    HYSPLEX_FUNCTION_GROUP_END
+
+    HYSPLEX_EVAL_GROUP(100000, 1, {}, {}, func_group, "eval_group.c");
+
+HYSPLEX_EVAL_GROUP expects the same arguments expected by HYSPLEX_EVAL_PAIR,
+exceptiong the two functions. HYSPLEX_EVAL_GROUP expects the previous declared
+function group.
+
+To compile:
+
+_ gcc -I~/hysplex/src -L~/hysplex/lib eval-group.c -oeval-group -lhysplex
+
+To run:
+
+_ ./eval-group
+
+    == Hysplex intermediate stats
+
+    == Functions 'fopen_based_file_exists' and 'stat_based_file_exists' were executed 100000 time(s).
+    == Function 'fopen_based_file_exists' has won 43313 time(s).
+    == Function 'stat_based_file_exists' has won 99365 time(s).
+    == Total of tied executions: 21339.
+    == Total of iterations with a winner: 78661
+    == The average execution time of function 'fopen_based_file_exists' was about 0.000002 secs.
+    == The average execution time of function 'stat_based_file_exists' was about 0.000001 secs.
+
+    == The winner function is 'stat_based_file_exists'.
+
+    == Chi-square = 45731.278 (certainty = 95%), 'stat_based_file_exists' is statistically faster than 'fopen_based_file_exists'.
+
+    == Hysplex final stats
+
+    == Functions 'stat_based_file_exists' and 'open_based_file_exists' were executed 100000 time(s).
+    == Function 'stat_based_file_exists' has won 84572 time(s).
+    == Function 'open_based_file_exists' has won 61371 time(s).
+    == Total of tied executions: 22971.
+    == Total of iterations with a winner: 77029
+    == The average execution time of function 'stat_based_file_exists' was about 0.000001 secs.
+    == The average execution time of function 'open_based_file_exists' was about 0.000001 secs.
+
+    == The winner function is 'stat_based_file_exists'.
+
+    == Chi-square = 13839.709 (certainty = 95%), 'stat_based_file_exists' is statistically faster than 'open_based_file_exists'.
+
+As you can see, use stat() to check file existence is the fastest way among the three tested ways.
