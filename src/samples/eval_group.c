@@ -47,4 +47,12 @@ HYSPLEX_FUNCTION_GROUP_BEGIN(func_group)
     HYSPLEX_REGISTER_FUNCTION(open_based_file_exists),
 HYSPLEX_FUNCTION_GROUP_END
 
-HYSPLEX_EVAL_GROUP(100000, 1, {}, {}, func_group, "eval_group.c");
+HYSPLEX_EVAL_GROUP(100000, 1,
+                   {
+                        FILE *fp = fopen("test.dat", "wb");
+                        fclose(fp);
+                   },
+                   {
+                        remove("test.dat");
+                   },
+                   func_group, "test.dat");
