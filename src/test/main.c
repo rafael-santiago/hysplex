@@ -258,15 +258,8 @@ CUTE_TEST_CASE(hysplex_poke_tests)
     } test_ctx[] = {
 #if !defined(_WIN32)
         { "../../samples/eval-pair --out=hysplex.log", "'plain_sum' is statistically faster than 'delayed_sum'.", 1 },
-        { "../../samples/eval-pair-inconclusive --out=hysplex.log", "The evaluated performances are inconclusive.", 0 },
-        { "../../samples/eval-group --out=hysplex.log",
-          "'stat_based_file_exists' is statistically faster than 'open_based_file_exists'.", 1 },
 #else
         { "..\\..\\samples\\eval-pair.exe --out=hysplex.log", "'plain_sum' is statistically faster than 'delayed_sum'.", 1 },
-        { "..\\..\\samples\\eval-pair-inconclusive.exe --out=hysplex.log",
-          "The evaluated performances are inconclusive.", 0 },
-        { "..\\..\\samples\\eval-group.exe --out=hysplex.log",
-          "'stat_based_file_exists' is statistically faster than 'open_based_file_exists'.", 1 },
 #endif
     }, *test, *test_end;
     int argc = sizeof(poke_tests_argv) / sizeof(poke_tests_argv[0]);

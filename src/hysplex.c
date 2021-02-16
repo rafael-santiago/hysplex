@@ -62,12 +62,23 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
     HYSPLEX_SNPRINTF(bp, bp_size, "== Function '%s' has won %d time(s).\n", s[1]->func_name, s[1]->score);
     HYSPLEX_SNPRINTF(bp, bp_size, "== Total of tied executions: %d.\n", ties_nr);
     HYSPLEX_SNPRINTF(bp, bp_size, "== Total of iterations with a winner: %d\n", iter_nr - ties_nr);
+#if defined(__unix__)
     HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %Lf secs.\n", s[0]->func_name,
                                                                                                   s[0]->exec_time_s /
                                                                                                (long double)iter_nr);
     HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %Lf secs.\n", s[1]->func_name,
                                                                                                  s[1]->exec_time_s /
                                                                                                (long double)iter_nr);
+#elif defined(_WIN32)
+    HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %f secs.\n", s[0]->func_name,
+                                                                                                  (double)s[0]->exec_time_s /
+                                                                                               (double)iter_nr);
+    HYSPLEX_SNPRINTF(bp, bp_size, "== The average execution time of function '%s' was about %f secs.\n", s[1]->func_name,
+                                                                                                 (double)s[1]->exec_time_s /
+                                                                                               (double)iter_nr);
+#else
+# error Some code wanted.
+#endif
     int wi = ((s[0]->score > s[1]->score) ? 0 : (s[1]->score > s[0]->score) ? 1 : -1);
 
     if (wi > -1) {
@@ -81,7 +92,14 @@ ssize_t hysplex_get_winner_function(char *buf, const size_t buf_size, struct hys
 
         int is_relevant = (chi_square > hysplex_get_chi_square_alpha());
 
+#if defined(__unix__)
         HYSPLEX_SNPRINTF(bp, bp_size, "== Chi-square = %.3Lf (certainty = %s%), ", chi_square, hysplex_get_option("certainty-perc", "95"));
+#elif defined(_WIN32)
+        HYSPLEX_SNPRINTF(bp, bp_size, "== Chi-square = %.3f (certainty = %s%%), ", (double)chi_square, hysplex_get_option("certainty-perc", "95"));
+#else
+# error Some code wanted.
+#endif
+
         HYSPLEX_SNPRINTF(bp, bp_size, "'%s' %s statistically faster than '%s'.\n", s[wi]->func_name,
                                       (is_relevant ? "is" : "is NOT"), s[!wi]->func_name);
 

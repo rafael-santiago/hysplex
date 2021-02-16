@@ -4,16 +4,16 @@ _     _ __   __  _____   _____          ______ _     _
 -------------------------------------------------------
 
 
-What it is about?
+What is it about?
 -----------------
 
-Hysplex is a C library that helps your measure performance of different
+Hysplex is a C library that helps you measure performance of different
 implementations of a function.
 
 What is the easiest way of cloning it?
 --------------------------------------
 
-_ git clone https://github.com/rafael-santiago/hysplex hysplex
+_ git clone https://github.com/rafael-santiago/hysplex hysplex --recursive
 
 How can I build it?
 -------------------
@@ -32,8 +32,8 @@ If all worked you will get hysplex ar file at '../lib/libhysplex.a'.
 Using hysplex
 -------------
 
-Hysplex is based on a internal DSL. The following code will able to
-measure the performance of two different implementation of a simple
+Hysplex is based on an internal DSL. The following code will able to
+measure the performance of two different implementations of a simple
 integer sum function:
 
     #include <hysplex.h>
@@ -55,25 +55,25 @@ The only DSL statement that is necessary to do the task is HYSPLEX_EVAL_PAIR.
 
 HYSPLEX_EVAL_PAIR allows you measure performance of two functions. It expects:
 
-    - a default number of iterations (how many times those functions will run).
+    - A default number of iterations (how many times those functions will run).
 
-    - if you want or not warm up (run functions without any benchmarking just
+    - If you want or not warm up (run functions without any benchmarking just
       to warm up cache).
 
-    - a set of pre statements to execute before calling the functions.
+    - A set of pre statements to execute before calling the functions.
 
-    - a set of post statements to execute after calling the functions.
+    - A set of post statements to execute after calling the functions.
 
-    - the two functions.
+    - The two functions.
 
-    - the parameter list that must be passed to those functions.
+    - The parameter list that must be passed to those functions.
 
 In order to compile you need to include -I<directory path to hysplex.h>,
 -L<directory path to libhysplex.a> -lhysplex. E.g.:
 
 _ gcc -I~/hysplex/src -L~/hysplex/lib eval_pair.c -oeval-pair -lhysplex
 
-After compiling the source you will get a application suitable to
+After compiling the source you will get an application suitable to
 measure your functions and present to you the results of all benchmarking.
 
 All you should do is:
@@ -105,12 +105,12 @@ option '--certainty-perc=<percentual>'. The percentual values can be: 90, 95 (de
 
 You can also overwrite the total of iterations passing the option '--iterations=<value>'.
 
-If you want to divert the results to a file use the option '--out=<file path>'. If the file path provided
+If you want to divert the results to a file use the option '--out=<file path>'. If the provided file path provided
 already exists the result data will be appended to this file.
 
-Sometimes you will implement a bunch of different implementations of the same functions. Test them paired
+Sometimes you will implement a bunch of different implementations of the same function. Test them paired
 can be tedious when using HYSPLEX_EVAIL_PAIR besides error prone (repetitive tasks delegated to Humans
-lead to errors, avoid doing this, better using your brain to think).
+lead to errors, avoid doing this, better using your brain to think...)
 
 To test a group of functions you should use HYSPLEX_EVAL_GROUP. When using eval group DSL statement
 you need to pass a function group declared by using HYSPLEX_FUNCTION_GROUP. Take a look at the
@@ -169,8 +169,9 @@ following code:
                        func_group, "test.dat");
 
 HYSPLEX_EVAL_GROUP expects the same arguments expected by HYSPLEX_EVAL_PAIR,
-exceptiong the two functions. HYSPLEX_EVAL_GROUP expects the previous declared
-function group.
+excepting the two functions. HYSPLEX_EVAL_GROUP expects the previous declared
+function group, where you have registered all functions that will run this
+"marathon".
 
 To compile:
 
@@ -226,7 +227,7 @@ following functions:
         return aa + bb;
     }
 
-Would xoring swap faster than a plain swap?
+Would xoring swap faster than a copy?
 
 Well, now getting the answer is a straightforward task, look:
 
@@ -238,8 +239,12 @@ _ gcc -I~/hysplex/src -L~/hysplex/lib eval_pair_inconclusive.c -oeval-pair-incon
 
 To run:
 
-_ ./eval_pair_inconclusive
+_ ./eval-pair-inconclusive
 
 hysplex warn: The evaluated performances are inconclusive. They are almost the same in performance. A bias was detected.
               The second function seems to take advantage from the first, probably due to CPU cache.
               You should take into consideration other aspects than performance to pick one. It is up to you!
+
+The result of "eval-pair-inconclusive" can vary from a computer to another. Sometimes Hysplex can tell you that the
+two functions are the same in performance even not being detected any execution bias. Well, even so, it is inconclusive
+anyway.
